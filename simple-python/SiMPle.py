@@ -3,33 +3,47 @@
 import librosa
 import statistics
 
+from sys import argv
 from scipy.spatial import distance
 
 def SiMPle_similarity(song_a, song_b, subsequence_length=4):
-	y_a, sr_a = librosa.load(song_a, offset=30)
-	#TODO Aproximate hop_lenght to match a certain number of chromas per second
-	time_series_a = librosa.feature.chroma_cqt(y=y_a, sr=sr_a, hop_length=10880)
+	# NOTE: Skipping the first 5 seconds of audio (noise)
+	y_a, sr_a = librosa.load(song_a, offset=5)
+	y_b, sr_b = librosa.load(song_b, offset=5)
 
-	y_b, sr_b = librosa.load(song_b, offset=30)
-	time_series_b = librosa.feature.chroma_cqt(y=y_b, sr=sr_b, hop_length=10880)	
+	# NOTE: hop_length means the number of frames considered in one chroma feature.
+	# Since sample rate is 22050Hz and considering that we want 2 chroma features
+	# per second: 22050/2 ~= 10880
+	# TODO: Check if sample rate is 44100Hz or 22050Hz so hop_length can be
+	# properly adjusted
+	duration_a = librosa.get_duration(y=y_a, sr=sr_a)
+	duration_b = librosa.get_duration(y=y_b, sr=sr_b)
 
-	pm, im = SiMPle(time_series_a, time_series_b, subsequence_length)
+	# NOTE: The lengthiest song must be the song whose sequences will be
+	# compared (song B on simple algorithm)
+	if duration_b >= duration_a:
+		time_series_a = librosa.feature.chroma_stft(y=y_a, sr=sr_a, hop_length=10880)	
+		time_series_b = librosa.feature.chroma_stft(y=y_b, sr=sr_b, hop_length=10880)
+	else:
+		time_series_a = librosa.feature.chroma_stft(y=y_b, sr=sr_b, hop_length=10880)	
+		time_series_b = librosa.feature.chroma_stft(y=y_a, sr=sr_a, hop_length=10880)
+
+	similarity_profile, similarity_index_profile = SiMPle(time_series_a, time_series_b, subsequence_length)
 	
-	return statistics.median(pm) 
+	return statistics.median(similarity_profile) 
 
 '''
 Calculates profile matrix and profile index according to SiMPle
 '''
 def SiMPle(time_series_a, time_series_b, subsequence_length):
-	indexes = len(time_series_b[0]) - subsequence_length + 1
-	print("Indexes: %i" % indexes)
+	indexes = len(time_series_a[0]) - subsequence_length + 1
+	print("Number of chroma features: %i" % indexes)
 
-	profile_matrix = [float("inf")] * indexes
-	index_matrix = [0] * indexes
+	profile_matrix = [float("inf")] * (indexes - 1)
+	index_matrix = [0] * (indexes - 1)
 
 	distances = []
 	for i in range(indexes):
-		print i
 		# FUTURE IMPROVEMENT: Use MASS algorithm to subsequences distances
 		distance_profile_vector = similarity_distances(time_series_a, time_series_b, i, subsequence_length)
 		# FIX: Use ElementWiseMin
@@ -59,10 +73,12 @@ def similarity_distances(time_series_a, time_series_b, starting_index, subsequen
 	
 def element_wise_min(profile_matrix, index_matrix, distance_profile_vector, index):
 	for i in range(len(distance_profile_vector) -  1):
+		old_subsequence_distance = profile_matrix[i]
 		profile_matrix[i] = min(profile_matrix[i], distance_profile_vector[i])
-		#TODO UPDATE INDEX
-	return profile_matrix, distance_profile_vector
+		if old_subsequence_distance != profile_matrix[i]:
+			index_matrix[i] = index 
+	return profile_matrix, index_matrix
 
 
 if __name__ == '__main__':
-	print SiMPle_similarity("Banda Yahoo - Mordida de Amor.mp3", "Def Leppard - Love Bites.mp3")
+	print SiMPle_similarity(argv[1], argv[2])
