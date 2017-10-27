@@ -6,25 +6,34 @@ import statistics
 
 from sys import argv
 from scipy.spatial import distance
+from time import gmtime, strftime
+
+HOP_LENGHT_FOR_CENS = 10880
 
 
-def similarity_by_simple(song_a, song_b, subsequence_length=4):
+def get_chroma_time_series(song):
+    '''
+        Function that returns a chroma CENS time series for a song
+        provided as parameter. NOTE: hop_length means the number 
+        of frames considered in one single chroma feature. Since
+        default sample rate is 22050Hz and considering that we want
+        2 chroma features per second of audio: 22050/2 ~= 10800
+        (hop_lenght must be multiple of 2^6)
+    '''
+    waveform_time_series, sample_rate = librosa.load(song)
+
+    return librosa.feature.chroma_cens(y=waveform_time_series, sr=sample_rate, hop_length=10880)
+
+
+def similarity_by_simple(time_series_a, time_series_b, subsequence_length=4):
     '''
         Function that calculates audio similarity according to the
         SiMPle algorithm
     '''
-    waveform_time_series_a, sample_rate_a = librosa.load(song_a)
-    waveform_time_series_b, sample_rate_b = librosa.load(song_b)
-
-# NOTE: hop_length means the number of frames considered in one chroma feature.
-# Since sample rate is 22050Hz and considering that we want 2 chroma features
-# per second: 22050/2 ~= 10880
-    chroma_time_series_a = librosa.feature.chroma_cens(
-        y=waveform_time_series_a, sr=sample_rate_a, hop_length=10880)
-    chroma_time_series_b = librosa.feature.chroma_cens(
-        y=waveform_time_series_b, sr=sample_rate_b, hop_length=10880)
+    print strftime("%Y-%m-%d %H:%M:%S", gmtime())
     similarity_profile, similarity_index = simple(
-        chroma_time_series_a, chroma_time_series_b, subsequence_length)
+        time_series_a, time_series_b, subsequence_length)
+    print strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
 # https://stats.stackexchange.com/questions/158279/how-i-can-convert-distance-euclidean-to-similarity-score
     return 1 - statistics.median(similarity_profile)
@@ -65,13 +74,16 @@ def similarity_distances(time_series_a, time_series_b, starting_index, subsequen
             chroma_feature_a = []
             for pitch_class in range(12):
                 chroma_feature_b.append(
-                    round(time_series_b[pitch_class][starting_index + j],2))
-                chroma_feature_a.append(round(time_series_a[pitch_class][i + j],2))
+                    round(time_series_b[pitch_class][starting_index + j], 2))
+                chroma_feature_a.append(
+                    round(time_series_a[pitch_class][i + j], 2))
             b_subsequence.append(chroma_feature_b)
             a_subsequence.append(chroma_feature_a)
-        euclidean_distances = distance.cdist(a_subsequence, b_subsequence, 'euclidean')
+        euclidean_distances = distance.cdist(
+            a_subsequence, b_subsequence, 'euclidean')
         # It only matters the distances between subsequence-equivalent frames
-        chroma_distances = [euclidean_distances[chroma_index][chroma_index] for chroma_index in range(subsequence_length)]        
+        chroma_distances = [euclidean_distances[chroma_index][chroma_index]
+                            for chroma_index in range(subsequence_length)]
         subsequence_distances.append(statistics.median(chroma_distances))
 
     return subsequence_distances
@@ -91,4 +103,4 @@ def element_wise_min(profile_matrix, index_matrix, distance_profile_vector, inde
 
 
 if __name__ == '__main__':
-    print similarity_by_simple(argv[1], argv[2])
+    print similarity_by_simple(get_chroma_time_series(argv[1]), get_chroma_time_series(argv[2]))
