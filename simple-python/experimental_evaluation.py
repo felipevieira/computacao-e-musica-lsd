@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import SiMPle
+import sys
 
-TRAINING_FILE_PATH = '/local/datasets/YTCdataset/listtrainv1'
-TESTING_FILE_PATH = '/local/datasets/YTCdataset/listtestv1'
+from concurrent.futures import ThreadPoolExecutor
+
+TRAINING_FILE_PATH = '/local/datasets/YTCdataset/listtrain'
+TESTING_FILE_PATH = '/local/datasets/YTCdataset/listtest'
 
 DATASET_HOME = '/local/datasets/YTCdataset'
 
@@ -15,6 +18,7 @@ def load_time_series_for_train_set():
 
     for entry in training_file.readlines():
         training_entry = entry.strip()
+        print "Loading time series for %s..." % training_entry
 
         training_time_series[training_entry] = SiMPle.get_chroma_time_series(
             "%s/%s.mp3" % (DATASET_HOME, training_entry))
@@ -24,6 +28,7 @@ def load_time_series_for_train_set():
 
 
 def get_similarity_ranking_for_testing_entry(training_time_series, testing_entry):
+    print "Building ranking for: %s" % testing_entry
     similarity_ranking = {}
 
     testing_time_series = SiMPle.get_chroma_time_series(
@@ -33,7 +38,7 @@ def get_similarity_ranking_for_testing_entry(training_time_series, testing_entry
         similarity_ranking[training_entry] = SiMPle.similarity_by_simple(
             training_time_series[training_entry], testing_time_series)
 
-    return sorted(similarity_ranking.iteritems(), key=lambda (k, v): (v, k), reverse=True)
+    write_ranking_to_file(testing_entry, sorted(similarity_ranking.iteritems(), key=lambda (k, v): (v, k), reverse=True))
 
 
 def write_ranking_to_file(testing_entry, dict_ranking):
@@ -46,24 +51,24 @@ def write_ranking_to_file(testing_entry, dict_ranking):
     ranking_file.close()
 
 
-def main():
+def main(testing_file):
     print "Pre-loading chroma time series for training set"
     training_time_series = load_time_series_for_train_set()
     print "Chroma time series pre-loading finished!"
 
-    testing_file = open(TESTING_FILE_PATH, 'r')
+    testing_file = open(testing_file, 'r')
 
     entry_count = 0
 
     # TODO: Parallelize ranking tasks
-    for entry in testing_file.readlines():
-        testing_entry = entry.strip()
-        entry_count += 1
+    with ThreadPoolExecutor(max_workers=5) as e:
+        for entry in testing_file.readlines():
+            testing_entry = entry.strip()
+            entry_count += 1
 
-        print "Fetching similarity ranking for testing entry #%i: %s" % (entry_count, testing_entry)
-        write_ranking_to_file(testing_entry, get_similarity_ranking_for_testing_entry(
-            training_time_series, testing_entry))
+            e.submit(get_similarity_ranking_for_testing_entry,
+                     training_time_series, testing_entry)
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1])
