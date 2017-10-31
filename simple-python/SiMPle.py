@@ -25,15 +25,15 @@ def get_chroma_time_series(song):
     return librosa.feature.chroma_cens(y=waveform_time_series, sr=sample_rate, hop_length=10880)
 
 
-def similarity_by_simple(time_series_a, time_series_b, subsequence_length=4):
+def similarity_by_simple(time_series_a, time_series_b, subsequence_length=20):
     '''
         Function that calculates audio similarity according to the
         SiMPle algorithm
     '''
-    print strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    print "SiMPle task started at %s" % strftime("%Y-%m-%d %H:%M:%S", gmtime())
     similarity_profile, similarity_index = simple(
         time_series_a, time_series_b, subsequence_length)
-    print strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    print "SiMPle task finished at %s" % strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
 # https://stats.stackexchange.com/questions/158279/how-i-can-convert-distance-euclidean-to-similarity-score
     return 1 - statistics.median(similarity_profile)
