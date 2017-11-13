@@ -14,7 +14,7 @@ HOP_LENGHT_FOR_CENS = 10880
 def get_chroma_time_series(song):
     '''
         Function that returns a chroma CENS time series for a song
-        provided as parameter. NOTE: hop_length means the number 
+        provided as parameter. NOTE: hop_length means the number
         of frames considered in one single chroma feature. Since
         default sample rate is 22050Hz and considering that we want
         2 chroma features per second of audio: 22050/2 ~= 10800
@@ -66,24 +66,22 @@ def similarity_distances(time_series_a, time_series_b, starting_index, subsequen
         subsequence_length starting at starting_index and every A subsequences of same size
     '''
     subsequence_distances = []
+    b_subsequence = []
+    for pitch_class in range(12):
+        b_subsequence.append([chroma_energy for chroma_energy in time_series_b[pitch_class]
+                              [starting_index:starting_index + subsequence_length]])
+
     for i in range(len(time_series_a[0]) - subsequence_length + 1):
-        b_subsequence = []
         a_subsequence = []
-        for j in range(subsequence_length):
-            chroma_feature_b = []
-            chroma_feature_a = []
-            for pitch_class in range(12):
-                chroma_feature_b.append(
-                    round(time_series_b[pitch_class][starting_index + j], 2))
-                chroma_feature_a.append(
-                    round(time_series_a[pitch_class][i + j], 2))
-            b_subsequence.append(chroma_feature_b)
-            a_subsequence.append(chroma_feature_a)
+        for pitch_class in range(12):
+            a_subsequence.append(
+                [chroma_energy for chroma_energy in time_series_a[pitch_class][i:i + subsequence_length]])
+
         euclidean_distances = distance.cdist(
             a_subsequence, b_subsequence, 'euclidean')
         # It only matters the distances between subsequence-equivalent frames
         chroma_distances = [euclidean_distances[chroma_index][chroma_index]
-                            for chroma_index in range(subsequence_length)]
+                            for chroma_index in range(12)]
         subsequence_distances.append(statistics.median(chroma_distances))
 
     return subsequence_distances

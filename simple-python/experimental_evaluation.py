@@ -3,6 +3,9 @@
 
 import SiMPle
 import sys
+import os
+import ntpath
+
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -51,7 +54,48 @@ def write_ranking_to_file(testing_entry, dict_ranking):
     ranking_file.close()
 
 
-def main(testing_file):
+def get_rank_first_identified(ranking_file):
+    label = ntpath.basename(ranking_file.split("|")[0])
+    ranking_position = 0
+    with open(ranking_file, 'r') as file:
+        for entry in file.readlines():
+            ranking_position += 1
+            if entry.split("0.")[0].split("/")[0].strip() == label:
+                return ranking_position
+        return ranking_position
+
+
+def get_precision_at_10(ranking_file):
+    label = ntpath.basename(ranking_file.split("|")[0])
+    identified_covers = 0
+    with open(ranking_file, 'r') as file:
+        for entry in file.readlines()[0:10]:
+            if entry.split("0.")[0].split("/")[0].strip() == label:
+                identified_covers += 0.1
+    return identified_covers
+
+
+def get_average_precision(ranking_file):
+    label = ntpath.basename(ranking_file.split("|")[0])
+    ranking_position = 0
+    current_matchings = 0
+    average_precision_series = []
+
+    with open(ranking_file, 'r') as file:
+        for entry in file.readlines():
+            ranking_position += 1
+            if entry.split("0.")[0].split("/")[0].strip() == label:
+                current_matchings += 1
+                average_precision = current_matchings / \
+                    float(ranking_position)
+                average_precision_series.append(average_precision)
+            else:
+                average_precision_series.append(0)
+
+    return sum(average_precision_series)
+
+
+def main_experiment(testing_file):
     print "Pre-loading chroma time series for training set"
     training_time_series = load_time_series_for_train_set()
     print "Chroma time series pre-loading finished!"
@@ -61,14 +105,39 @@ def main(testing_file):
     entry_count = 0
 
     # TODO: Parallelize ranking tasks
-    with ThreadPoolExecutor(max_workers=5) as e:
+    with ThreadPoolExecutor(max_workers=8) as e:
         for entry in testing_file.readlines():
             testing_entry = entry.strip()
             entry_count += 1
 
             e.submit(get_similarity_ranking_for_testing_entry,
                      training_time_series, testing_entry)
+    # wait for termination
+
+
+def main_metrics(ranking_folder):
+    f = []
+    first_identifieds = []
+    precisions_at_10 = []
+    average_precisions = []
+    for (dirpath, dirnames, filenames) in os.walk(ranking_folder):
+        f.extend(filenames)
+
+    for file in f:
+        first_identifieds.append(get_rank_first_identified(
+            "%s/%s" % (ranking_folder, file)))
+        precisions_at_10.append(get_precision_at_10(
+            "%s/%s" % (ranking_folder, file)))
+        average_precisions.append(get_average_precision(
+            "%s/%s" % (ranking_folder, file)))
+
+    print "%s: %.3f" % ("MR1", sum(first_identifieds) / float(len(first_identifieds)))
+    print "%s: %.3f" % ("P@10", sum(precisions_at_10) / float(len(precisions_at_10)))
+    print "%s: %.3f" % ("MAP", sum(average_precisions) / float(len(average_precisions)))
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    if (sys.argv[1] == "run_experiment"):
+        main_experiment(sys.argv[2])
+    elif (sys.argv[1] == "run_evaluation"):
+        main_metrics(sys.argv[2])
