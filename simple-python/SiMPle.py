@@ -3,6 +3,7 @@
 
 import librosa
 import statistics
+import numpy
 
 from sys import argv
 from scipy.spatial import distance
@@ -11,32 +12,98 @@ from time import gmtime, strftime
 HOP_LENGHT_FOR_CENS = 10880
 
 
+def _print_subsequence(chroma_series, subsequence_length, start_index):
+    count = 0
+    for pitch_class in chroma_series:
+        print("Subsequence for pitch %i: %s" % (
+            count, str(chroma_series[count][start_index: start_index + subsequence_length])))
+        count += 1
+
+# http://scipy.github.io/old-wiki/pages/Cookbook/SignalSmooth
+
+
+def smooth(x, window_len=11, window='hanning'):
+    """smooth the data using a window with requested size.
+
+    This method is based on the convolution of a scaled window with the signal.
+    The signal is prepared by introducing reflected copies of the signal
+    (with the window size) in both ends so that transient parts are minimized
+    in the begining and end part of the output signal.
+
+    input:
+        x: the input signal
+        window_len: the dimension of the smoothing window; should be an odd integer
+        window: the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
+            flat window will produce a moving average smoothing.
+
+    output:
+        the smoothed signal
+
+    example:
+
+    t=linspace(-2,2,0.1)
+    x=sin(t)+randn(len(t))*0.1
+    y=smooth(x)
+
+    see also:
+
+    numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
+    scipy.signal.lfilter
+
+    TODO: the window parameter could be the window itself if an array instead of a string
+    NOTE: length(output) != length(input), to correct this: return y[(window_len/2-1):-(window_len/2)] instead of just y.
+    """
+
+    if x.ndim != 1:
+        raise ValueError, "smooth only accepts 1 dimension arrays."
+
+    if x.size < window_len:
+        raise ValueError, "Input vector needs to be bigger than window size."
+
+    if window_len < 3:
+        return x
+
+    if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+        raise ValueError, "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
+
+    s = numpy.r_[x[window_len - 1:0:-1], x, x[-1:-window_len:-1]]
+    # print(len(s))
+    if window == 'flat':  # moving average
+        w = numpy.ones(window_len, 'd')
+    else:
+        w = eval('numpy.' + window + '(window_len)')
+
+    y = numpy.convolve(w / w.sum(), s, mode='valid')
+    return y
+
+
 def get_chroma_time_series(song):
     '''
         Function that returns a chroma CENS time series for a song
         provided as parameter. NOTE: hop_length means the number
         of frames considered in one single chroma feature. Since
         default sample rate is 22050Hz and considering that we want
-        2 chroma features per second of audio: 22050/2 ~= 10800
+        2 chroma features per second of audio: 22050/2 ~= 11008
         (hop_lenght must be multiple of 2^6)
     '''
     waveform_time_series, sample_rate = librosa.load(song)
 
-    return librosa.feature.chroma_cens(y=waveform_time_series, sr=sample_rate, hop_length=10880)
+    chroma_cens = librosa.feature.chroma_cens(
+        y=waveform_time_series, sr=sample_rate, hop_length=11008, win_len_smooth=41)
+
+    # return [smooth(pitch_chroma_cens, window_len=80) for pitch_chroma_cens in chroma_cens]
+    return chroma_cens
 
 
-def similarity_by_simple(time_series_a, time_series_b, subsequence_length=20):
+def similarity_by_simple(time_series_a, time_series_b, subsequence_length=10):
     '''
         Function that calculates audio similarity according to the
         SiMPle algorithm
     '''
-    print "SiMPle task started at %s" % strftime("%Y-%m-%d %H:%M:%S", gmtime())
     similarity_profile, similarity_index = simple(
         time_series_a, time_series_b, subsequence_length)
-    print "SiMPle task finished at %s" % strftime("%Y-%m-%d %H:%M:%S", gmtime())
-
 # https://stats.stackexchange.com/questions/158279/how-i-can-convert-distance-euclidean-to-similarity-score
-    return 1 - statistics.median(similarity_profile)
+    return statistics.median(similarity_profile)
 
 
 def simple(time_series_a, time_series_b, subsequence_length):
@@ -76,13 +143,13 @@ def similarity_distances(time_series_a, time_series_b, starting_index, subsequen
         for pitch_class in range(12):
             a_subsequence.append(
                 [chroma_energy for chroma_energy in time_series_a[pitch_class][i:i + subsequence_length]])
-
         euclidean_distances = distance.cdist(
             a_subsequence, b_subsequence, 'euclidean')
         # It only matters the distances between subsequence-equivalent frames
         chroma_distances = [euclidean_distances[chroma_index][chroma_index]
                             for chroma_index in range(12)]
-        subsequence_distances.append(statistics.median(chroma_distances))
+        subsequence_distances.append(
+            sum(chroma_distances))
 
     return subsequence_distances
 

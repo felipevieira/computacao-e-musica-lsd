@@ -5,6 +5,7 @@ import SiMPle
 import sys
 import os
 import ntpath
+import pickle
 
 
 from concurrent.futures import ThreadPoolExecutor
@@ -15,7 +16,20 @@ TESTING_FILE_PATH = '/local/datasets/YTCdataset/listtest'
 DATASET_HOME = '/local/datasets/YTCdataset'
 
 
-def load_time_series_for_train_set():
+def write_chroma_series_to_file(file_path, chroma_series):
+    if not os.path.exists("%s/### Experiments ###/Chromas for Training Entries/%s" % (DATASET_HOME, file_path.split("/")[0])):
+        os.makedirs("%s/### Experiments ###/Chromas for Training Entries/%s" %
+                    (DATASET_HOME, file_path.split("/")[0]))
+    with open("%s/### Experiments ###/Chromas for Training Entries/%s.chroma" % (DATASET_HOME, file_path.strip()), "w+") as file:
+        pickle.dump(chroma_series, file)
+
+
+def load_chroma_series_from_file(file_path):
+    with open(file_path, "rb") as file:
+        return pickle.load(file)
+
+
+def load_time_series_for_train_set(rewrite=False):
     training_file = open(TRAINING_FILE_PATH, 'r')
     training_time_series = {}
 
@@ -23,8 +37,12 @@ def load_time_series_for_train_set():
         training_entry = entry.strip()
         print "Loading time series for %s..." % training_entry
 
-        training_time_series[training_entry] = SiMPle.get_chroma_time_series(
-            "%s/%s.mp3" % (DATASET_HOME, training_entry))
+        if rewrite:
+            write_chroma_series_to_file(entry, SiMPle.get_chroma_time_series(
+                "%s/%s.mp3" % (DATASET_HOME, training_entry)))
+
+        training_time_series[training_entry] = load_chroma_series_from_file(
+            "%s/### Experiments ###/Chromas for Training Entries/%s.chroma" % (DATASET_HOME, entry.strip()))
 
     training_file.close()
     return training_time_series
@@ -41,7 +59,7 @@ def get_similarity_ranking_for_testing_entry(training_time_series, testing_entry
         similarity_ranking[training_entry] = SiMPle.similarity_by_simple(
             training_time_series[training_entry], testing_time_series)
 
-    write_ranking_to_file(testing_entry, sorted(similarity_ranking.iteritems(), key=lambda (k, v): (v, k), reverse=True))
+    write_ranking_to_file(testing_entry, sorted(similarity_ranking.iteritems(), key=lambda (k, v): (v, k)))
 
 
 def write_ranking_to_file(testing_entry, dict_ranking):
@@ -86,8 +104,7 @@ def get_average_precision(ranking_file):
             ranking_position += 1
             if entry.split("0.")[0].split("/")[0].strip() == label:
                 current_matchings += 1
-                average_precision = current_matchings / \
-                    float(ranking_position)
+                average_precision = current_matchings / float(ranking_position)
                 average_precision_series.append(average_precision)
             else:
                 average_precision_series.append(0)
