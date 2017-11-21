@@ -4,6 +4,8 @@
 import librosa
 import statistics
 import numpy
+import operator
+
 
 from sys import argv
 from scipy.spatial import distance
@@ -77,6 +79,34 @@ def smooth(x, window_len=11, window='hanning'):
     return y
 
 
+def rotate(l, n):
+    return l[-n:] + l[:-n]
+
+
+def get_optimal_transposition_index(time_series_a, time_series_b):
+    global_profile_a = [sum(time_series_a[pitch_class])
+                        for pitch_class in range(12)]
+    max_global_profile_a = max(global_profile_a)
+    global_profile_a = [float(global_profile) / max_global_profile_a
+                        for global_profile in global_profile_a]
+
+    global_profile_b = [sum(time_series_b[pitch_class])
+                        for pitch_class in range(12)]
+    max_global_profile_b = max(global_profile_b)
+    global_profile_b = [float(global_profile) / max_global_profile_b
+                        for global_profile in global_profile_b]
+
+    dot_products = []
+
+    for i in range(12):
+        dot_products.append(
+            numpy.dot(global_profile_a, rotate(global_profile_b, i)))
+
+    index, _ = max(enumerate(dot_products), key=operator.itemgetter(1))
+
+    return index
+
+
 def get_chroma_time_series(song):
     '''
         Function that returns a chroma CENS time series for a song
@@ -89,9 +119,8 @@ def get_chroma_time_series(song):
     waveform_time_series, sample_rate = librosa.load(song)
 
     chroma_cens = librosa.feature.chroma_cens(
-        y=waveform_time_series, sr=sample_rate, hop_length=11008, win_len_smooth=41)
+        y=waveform_time_series, sr=sample_rate, hop_length=11008)
 
-    # return [smooth(pitch_chroma_cens, window_len=80) for pitch_chroma_cens in chroma_cens]
     return chroma_cens
 
 
@@ -100,8 +129,9 @@ def similarity_by_simple(time_series_a, time_series_b, subsequence_length=10):
         Function that calculates audio similarity according to the
         SiMPle algorithm
     '''
+    oti = get_optimal_transposition_index(time_series_a, time_series_b)
     similarity_profile, similarity_index = simple(
-        time_series_a, time_series_b, subsequence_length)
+        time_series_a, rotate(list(time_series_b), oti), subsequence_length)
 # https://stats.stackexchange.com/questions/158279/how-i-can-convert-distance-euclidean-to-similarity-score
     return statistics.median(similarity_profile)
 
@@ -169,3 +199,4 @@ def element_wise_min(profile_matrix, index_matrix, distance_profile_vector, inde
 
 if __name__ == '__main__':
     print similarity_by_simple(get_chroma_time_series(argv[1]), get_chroma_time_series(argv[2]))
+    # print get_optimal_transposition_index(get_chroma_time_series(argv[1]), get_chroma_time_series(argv[2]))
