@@ -2,6 +2,7 @@
 
 <head>
     <title>O Forró daqui é parecido com o seu?</title>
+    <link href="http://netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
     <style>
         body {
             background-color: powderblue;
@@ -92,7 +93,7 @@
             -webkit-border-radius: 40px;
             border-radius: 40px;
             font: normal 20px/30px "Advent Pro", Helvetica, sans-serif;
-            color: rgb(30, 205, 151);
+            color: rgb(30, 205, 132);
             text-align: center;
             -o-text-overflow: clip;
             text-overflow: clip;
@@ -117,10 +118,32 @@
             -o-transition: none;
             transition: none;
         }
+
+        textarea:focus,
+        input:focus {
+            outline: 0;
+        }
+
+        *:focus {
+            outline: 0;
+        }
+
+        textarea#styled {
+            border: 3px solid rgba(33, 224, 163, 1);
+            border-radius: 20px;
+            width: 400px;
+            height: 120px;
+            padding: 5px;
+            font-family: Tahoma, sans-serif;
+            background-image: url(bg.gif);
+            background-position: bottom right;
+            background-repeat: no-repeat;
+        }
     </style>
 </head>
 
 <body>
+
     <div style="position: absolute; left: 50%;top: 50%;-webkit-transform: translate(-50%, -50%);transform: translate(-50%, -50%);">
         <center>
             <span style="font-family: Trebuchet MS;font-size: 30px;">Qual a música mais diferente das demais?</span>
@@ -131,7 +154,7 @@
                     <audio controls style="display: inline-block; vertical-align: middle; margin-right: 3%; padding: 12px; -webkit-transition:all 0.5s linear; -moz-transition:all 0.5s linear; -o-transition:all 0.5s linear; transition:all 0.5s linear; -moz-box-shadow: 2px 2px 4px 4px #006773; -webkit-box-shadow: 2px 2px 4px 4px #006773; box-shadow: 2px 2px 2px 2px #006773; -moz-border-radius:7px 7px 7px 7px ; -webkit-border-radius:7px 7px 7px 7px ; border-radius:7px 7px 7px 7px ;">
                         <source src="/home/felipev/Área de Trabalho/03 Ela quer carimbó.mp3" type="audio/mpeg">
                     </audio>
-                    <input type="radio" checked="checked" name="radio" sty>
+                    <input type="radio" name="radio">
                     <span class="checkmark"></span>
                 </label>
                 <div class="line-break"></div>
@@ -139,7 +162,7 @@
                     <audio controls style="display: inline-block; vertical-align: middle; margin-right: 3%; padding: 12px; -webkit-transition:all 0.5s linear; -moz-transition:all 0.5s linear; -o-transition:all 0.5s linear; transition:all 0.5s linear; -moz-box-shadow: 2px 2px 4px 4px #006773; -webkit-box-shadow: 2px 2px 4px 4px #006773; box-shadow: 2px 2px 2px 2px #006773; -moz-border-radius:7px 7px 7px 7px ; -webkit-border-radius:7px 7px 7px 7px ; border-radius:7px 7px 7px 7px ;">
                         <source src="/home/felipev/Área de Trabalho/03 Ela quer carimbó.mp3" type="audio/mpeg">
                     </audio>
-                    <input type="radio" checked="checked" name="radio">
+                    <input type="radio" name="radio">
                     <span class="checkmark"></span>
                 </label>
                 <div class="line-break"></div>
@@ -147,12 +170,17 @@
                     <audio controls style="display: inline-block; vertical-align: middle; margin-right: 3%; padding: 12px; -webkit-transition:all 0.5s linear; -moz-transition:all 0.5s linear; -o-transition:all 0.5s linear; transition:all 0.5s linear; -moz-box-shadow: 2px 2px 4px 4px #006773; -webkit-box-shadow: 2px 2px 4px 4px #006773; box-shadow: 2px 2px 2px 2px #006773; -moz-border-radius:7px 7px 7px 7px ; -webkit-border-radius:7px 7px 7px 7px ; border-radius:7px 7px 7px 7px ;">
                         <source src="/home/felipev/Área de Trabalho/03 Ela quer carimbó.mp3" type="audio/mpeg">
                     </audio>
-                    <input type="radio" checked="checked" name="radio">
+                    <input type="radio" name="radio">
                     <span class="checkmark"></span>
                 </label>
+                <div class="line-break"></div>
+                <input type="button" class="enjoy-css" style="font-size: 15px !important; width: 280px; color: #747272;border: 2px solid #747272;"
+                    value="EXECUTAR TODAS EM SEQUÊNCIA">
 
                 <div class="line-break"></div>
-                <input type="button" class="enjoy-css" value="JÁ ESCOLHI!" onClick="document.location.reload(true)">
+                <textarea name="styled-textarea" id="styled" onfocus="this.value=''; setbg('#e5fff3');" onblur="setbg('white')">(Opcional) Gostaria de dizer o quê motivou sua escolha?</textarea>
+                <div class="line-break"></div>
+                <input type="button" class="enjoy-css" value="JÁ ESCOLHI!">
             </form>
         </center>
     </div>
