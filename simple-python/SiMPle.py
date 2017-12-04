@@ -124,7 +124,7 @@ def get_chroma_time_series(song):
     return chroma_cens
 
 
-def similarity_by_simple(time_series_a, time_series_b, subsequence_length=10):
+def similarity_by_simple(time_series_a, time_series_b, subsequence_length=20):
     '''
         Function that calculates audio similarity according to the
         SiMPle algorithm

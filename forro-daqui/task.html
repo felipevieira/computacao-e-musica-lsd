@@ -1,0 +1,178 @@
+<html>
+
+<head>
+    <title>O Forró daqui é parecido com o seu?</title>
+    <style>
+        body {
+            background-color: powderblue;
+        }
+
+        .container {
+            position: relative;
+            padding-left: 35px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            font-size: 22px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            vertical-align: middle;
+        }
+
+        /* Hide the browser's default radio button */
+
+        .container input {
+            position: absolute;
+            opacity: 0;
+        }
+
+        /* Create a custom radio button */
+
+        .checkmark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 25px;
+            width: 25px;
+            background-color: #eee;
+            border-radius: 50%;
+        }
+
+        /* On mouse-over, add a grey background color */
+
+        .container:hover input~.checkmark {
+            background-color: #ccc;
+        }
+
+        /* When the radio button is checked, add a blue background */
+
+        .container input:checked~.checkmark {
+            background-color: #2196F3;
+        }
+
+        /* Create the indicator (the dot/circle - hidden when not checked) */
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        /* Show the indicator (dot/circle) when checked */
+
+        .container input:checked~.checkmark:after {
+            display: block;
+        }
+
+        /* Style the indicator (dot/circle) */
+
+        .container .checkmark:after {
+            top: 9px;
+            left: 9px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: white;
+        }
+
+        .line-break {
+            height: 15px;
+        }
+
+        .enjoy-css {
+            -webkit-box-sizing: content-box;
+            -moz-box-sizing: content-box;
+            box-sizing: content-box;
+            width: 150px;
+            height: 40px;
+            cursor: pointer;
+            margin: 0 auto;
+            border: 2px solid rgb(30, 205, 151);
+            -webkit-border-radius: 40px;
+            border-radius: 40px;
+            font: normal 20px/30px "Advent Pro", Helvetica, sans-serif;
+            color: rgb(30, 205, 151);
+            text-align: center;
+            -o-text-overflow: clip;
+            text-overflow: clip;
+            letter-spacing: 1px;
+            background: rgba(0, 0, 0, 0);
+            -webkit-transition: background-color 0.3s cubic-bezier(0, 0, 0, 0), color 0.3s cubic-bezier(0, 0, 0, 0), width 0.3s cubic-bezier(0, 0, 0, 0), border-width 0.3s cubic-bezier(0, 0, 0, 0), border-color 0.3s cubic-bezier(0, 0, 0, 0);
+            -moz-transition: background-color 0.3s cubic-bezier(0, 0, 0, 0), color 0.3s cubic-bezier(0, 0, 0, 0), width 0.3s cubic-bezier(0, 0, 0, 0), border-width 0.3s cubic-bezier(0, 0, 0, 0), border-color 0.3s cubic-bezier(0, 0, 0, 0);
+            -o-transition: background-color 0.3s cubic-bezier(0, 0, 0, 0), color 0.3s cubic-bezier(0, 0, 0, 0), width 0.3s cubic-bezier(0, 0, 0, 0), border-width 0.3s cubic-bezier(0, 0, 0, 0), border-color 0.3s cubic-bezier(0, 0, 0, 0);
+            transition: background-color 0.3s cubic-bezier(0, 0, 0, 0), color 0.3s cubic-bezier(0, 0, 0, 0), width 0.3s cubic-bezier(0, 0, 0, 0), border-width 0.3s cubic-bezier(0, 0, 0, 0), border-color 0.3s cubic-bezier(0, 0, 0, 0);
+        }
+
+        .enjoy-css:hover {
+            color: rgba(255, 255, 255, 1);
+            background: rgb(30, 205, 151);
+        }
+
+        .enjoy-css:active {
+            border: 2px solid rgba(33, 224, 163, 1);
+            background: rgba(33, 224, 163, 1);
+            -webkit-transition: none;
+            -moz-transition: none;
+            -o-transition: none;
+            transition: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="position: absolute; left: 50%;top: 50%;-webkit-transform: translate(-50%, -50%);transform: translate(-50%, -50%);">
+        <center>
+            <span style="font-family: Trebuchet MS;font-size: 30px;">Qual a música mais diferente das demais?</span>
+            <div class="line-break"></div>
+            <div class="line-break"></div>
+            <form action="">
+                <label class="container" style="margin-top: 10px;">
+                    <audio controls style="display: inline-block; vertical-align: middle; margin-right: 3%; padding: 12px; -webkit-transition:all 0.5s linear; -moz-transition:all 0.5s linear; -o-transition:all 0.5s linear; transition:all 0.5s linear; -moz-box-shadow: 2px 2px 4px 4px #006773; -webkit-box-shadow: 2px 2px 4px 4px #006773; box-shadow: 2px 2px 2px 2px #006773; -moz-border-radius:7px 7px 7px 7px ; -webkit-border-radius:7px 7px 7px 7px ; border-radius:7px 7px 7px 7px ;">
+                        <source src="/home/felipev/Área de Trabalho/03 Ela quer carimbó.mp3" type="audio/mpeg">
+                    </audio>
+                    <input type="radio" checked="checked" name="radio" sty>
+                    <span class="checkmark"></span>
+                </label>
+                <div class="line-break"></div>
+                <label class="container">
+                    <audio controls style="display: inline-block; vertical-align: middle; margin-right: 3%; padding: 12px; -webkit-transition:all 0.5s linear; -moz-transition:all 0.5s linear; -o-transition:all 0.5s linear; transition:all 0.5s linear; -moz-box-shadow: 2px 2px 4px 4px #006773; -webkit-box-shadow: 2px 2px 4px 4px #006773; box-shadow: 2px 2px 2px 2px #006773; -moz-border-radius:7px 7px 7px 7px ; -webkit-border-radius:7px 7px 7px 7px ; border-radius:7px 7px 7px 7px ;">
+                        <source src="/home/felipev/Área de Trabalho/03 Ela quer carimbó.mp3" type="audio/mpeg">
+                    </audio>
+                    <input type="radio" checked="checked" name="radio">
+                    <span class="checkmark"></span>
+                </label>
+                <div class="line-break"></div>
+                <label class="container">
+                    <audio controls style="display: inline-block; vertical-align: middle; margin-right: 3%; padding: 12px; -webkit-transition:all 0.5s linear; -moz-transition:all 0.5s linear; -o-transition:all 0.5s linear; transition:all 0.5s linear; -moz-box-shadow: 2px 2px 4px 4px #006773; -webkit-box-shadow: 2px 2px 4px 4px #006773; box-shadow: 2px 2px 2px 2px #006773; -moz-border-radius:7px 7px 7px 7px ; -webkit-border-radius:7px 7px 7px 7px ; border-radius:7px 7px 7px 7px ;">
+                        <source src="/home/felipev/Área de Trabalho/03 Ela quer carimbó.mp3" type="audio/mpeg">
+                    </audio>
+                    <input type="radio" checked="checked" name="radio">
+                    <span class="checkmark"></span>
+                </label>
+
+                <div class="line-break"></div>
+                <input type="button" class="enjoy-css" value="JÁ ESCOLHI!" onClick="document.location.reload(true)">
+            </form>
+        </center>
+    </div>
+</body>
+
+</html>
+
+
+<!-- <script type="text/javascript">
+    (function () {
+        // Your JavaScript code
+        pybossa.taskLoaded(function (task, deferred) {
+            // When the task is loaded, do....
+        });
+
+        pybossa.presentTask(function (task, deferred) {
+            // Present the current task to the user
+            // Load the task data into the HTML DOM
+        });
+
+        pybossa.run('forrodaqui');
+    })();
+</script> -->
