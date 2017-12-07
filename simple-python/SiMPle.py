@@ -5,11 +5,15 @@ import librosa
 import statistics
 import numpy
 import operator
+import time
+import datetime
 
 
 from sys import argv
 from scipy.spatial import distance
 from time import gmtime, strftime
+
+# from mass import *
 
 HOP_LENGHT_FOR_CENS = 10880
 
@@ -22,61 +26,6 @@ def _print_subsequence(chroma_series, subsequence_length, start_index):
         count += 1
 
 # http://scipy.github.io/old-wiki/pages/Cookbook/SignalSmooth
-
-
-def smooth(x, window_len=11, window='hanning'):
-    """smooth the data using a window with requested size.
-
-    This method is based on the convolution of a scaled window with the signal.
-    The signal is prepared by introducing reflected copies of the signal
-    (with the window size) in both ends so that transient parts are minimized
-    in the begining and end part of the output signal.
-
-    input:
-        x: the input signal
-        window_len: the dimension of the smoothing window; should be an odd integer
-        window: the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
-            flat window will produce a moving average smoothing.
-
-    output:
-        the smoothed signal
-
-    example:
-
-    t=linspace(-2,2,0.1)
-    x=sin(t)+randn(len(t))*0.1
-    y=smooth(x)
-
-    see also:
-
-    numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
-    scipy.signal.lfilter
-
-    TODO: the window parameter could be the window itself if an array instead of a string
-    NOTE: length(output) != length(input), to correct this: return y[(window_len/2-1):-(window_len/2)] instead of just y.
-    """
-
-    if x.ndim != 1:
-        raise ValueError, "smooth only accepts 1 dimension arrays."
-
-    if x.size < window_len:
-        raise ValueError, "Input vector needs to be bigger than window size."
-
-    if window_len < 3:
-        return x
-
-    if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
-        raise ValueError, "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
-
-    s = numpy.r_[x[window_len - 1:0:-1], x, x[-1:-window_len:-1]]
-    # print(len(s))
-    if window == 'flat':  # moving average
-        w = numpy.ones(window_len, 'd')
-    else:
-        w = eval('numpy.' + window + '(window_len)')
-
-    y = numpy.convolve(w / w.sum(), s, mode='valid')
-    return y
 
 
 def rotate(l, n):
@@ -107,21 +56,41 @@ def get_optimal_transposition_index(time_series_a, time_series_b):
     return index
 
 
-def get_chroma_time_series(song):
+def get_chroma_time_series(song, hop_length=2176, agreggate_window=10):
     '''
         Function that returns a chroma CENS time series for a song
         provided as parameter. NOTE: hop_length means the number
         of frames considered in one single chroma feature. Since
-        default sample rate is 22050Hz and considering that we want
-        2 chroma features per second of audio: 22050/2 ~= 11008
+        default sample rate is 44100Hz and considering that we want
+        20 chroma features per second of audio (before aggs): 44100/20 ~= 11008
         (hop_lenght must be multiple of 2^6)
     '''
-    waveform_time_series, sample_rate = librosa.load(song)
+    waveform_time_series, sample_rate = librosa.load(song, sr=44100)
 
     chroma_cens = librosa.feature.chroma_cens(
-        y=waveform_time_series, sr=sample_rate, hop_length=11008)
+        y=waveform_time_series, sr=sample_rate, hop_length=hop_length, win_len_smooth=1)
 
-    return chroma_cens
+    aggregated_chroma = []
+    if agreggate_window:
+        for i in range(12):
+            aggregated_pitch = []
+            # aggregate first window fully
+            aggregated_pitch.append(
+                float(sum(chroma_cens[i][0:agreggate_window])) / agreggate_window)
+            for j in range(agreggate_window, len(chroma_cens[i]), agreggate_window):
+                aggregated_pitch.append(
+                    float(sum(chroma_cens[i][j - agreggate_window / 2:j + agreggate_window / 2])) / agreggate_window)
+            # for j in range(len(chroma_cens[i]) / agreggate_window):
+            #     aggregated_pitch.append(
+            #         # Aggregating and overlapping
+            #         sum(chroma_cens[i][max(0, j - (agreggate_window / 2)):j + (agreggate_window / 2)]) / agreggate_window)
+            # if len(chroma_cens) - j + agreggate_window != 0:
+            #     aggregated_pitch.append(
+            #         float(sum(chroma_cens[i][j + agreggate_window / 2:])) / agreggate_window)
+
+            aggregated_chroma.append(aggregated_pitch)
+
+    return aggregated_chroma
 
 
 def similarity_by_simple(time_series_a, time_series_b, subsequence_length=20):
@@ -146,15 +115,35 @@ def simple(time_series_a, time_series_b, subsequence_length):
 
     profile_matrix = [float("inf")] * (chroma_length_a - 1)
     index_matrix = [0] * (chroma_length_a - 1)
-
+    ts = time.time()
     for i in range(chroma_length_b):
         # FUTURE IMPROVEMENT: Use MASS algorithm to subsequences distances
         distance_profile_vector = similarity_distances(
             time_series_a, time_series_b, i, subsequence_length)
+        # distance_profile_vector = chroma_mass(
+        #     time_series_a, time_series_b, i, subsequence_length)
         profile_matrix, index_matrix = element_wise_min(
             profile_matrix, index_matrix, distance_profile_vector, i)
 
     return profile_matrix, index_matrix
+
+
+def chroma_mass(time_series_a, time_series_b, b_index, subsequence_length):
+    chroma_distances = []
+
+    for i in range(12):
+        chroma_distances.append(
+            findInT(time_series_b[i][b_index:b_index + subsequence_length], time_series_a[i]))
+
+    distance_profile_vector = []
+
+    for j in range(len(chroma_distances[0])):
+        pitch_distances = []
+        for k in range(12):
+            pitch_distances.append(chroma_distances[k][j])
+        distance_profile_vector.append(sum(pitch_distances))
+
+    return distance_profile_vector
 
 
 def similarity_distances(time_series_a, time_series_b, starting_index, subsequence_length):
@@ -198,5 +187,8 @@ def element_wise_min(profile_matrix, index_matrix, distance_profile_vector, inde
 
 
 if __name__ == '__main__':
-    print similarity_by_simple(get_chroma_time_series(argv[1]), get_chroma_time_series(argv[2]))
+    # print len(get_chroma_time_series("/local/datasets/YTCdataset/ABBA - Dancing Queen/ABBA - DANCING QUEEN (Metal Cover)-LPLmhHnQytM.mp3",
+    #                                  hop_length=2240, agreggate_window=10)[0])
+    print similarity_by_simple(get_chroma_time_series(argv[1], hop_length=1088, agreggate_window=10),
+                               get_chroma_time_series(argv[2], hop_length=1088, agreggate_window=10))
     # print get_optimal_transposition_index(get_chroma_time_series(argv[1]), get_chroma_time_series(argv[2]))

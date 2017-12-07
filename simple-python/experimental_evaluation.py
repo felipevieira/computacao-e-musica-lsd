@@ -29,7 +29,7 @@ def load_chroma_series_from_file(file_path):
         return pickle.load(file)
 
 
-def load_time_series_for_train_set(rewrite=False):
+def load_time_series_for_train_set(rewrite=True):
     training_file = open(TRAINING_FILE_PATH, 'r')
     training_time_series = {}
 
@@ -39,7 +39,7 @@ def load_time_series_for_train_set(rewrite=False):
 
         if rewrite:
             write_chroma_series_to_file(entry, SiMPle.get_chroma_time_series(
-                "%s/%s.mp3" % (DATASET_HOME, training_entry)))
+                "%s/%s.mp3" % (DATASET_HOME, training_entry), hop_length=2240, agreggate_window=10))
 
         training_time_series[training_entry] = load_chroma_series_from_file(
             "%s/### Experiments ###/Chromas for Training Entries/%s.chroma" % (DATASET_HOME, entry.strip()))
@@ -53,7 +53,7 @@ def get_similarity_ranking_for_testing_entry(training_time_series, testing_entry
     similarity_ranking = {}
 
     testing_time_series = SiMPle.get_chroma_time_series(
-        "%s/%s.mp3" % (DATASET_HOME, testing_entry))
+        "%s/%s.mp3" % (DATASET_HOME, testing_entry), hop_length=2240, agreggate_window=10)
 
     for training_entry in training_time_series.keys():
         similarity_ranking[training_entry] = SiMPle.similarity_by_simple(
@@ -122,7 +122,7 @@ def main_experiment(testing_file):
     entry_count = 0
 
     # TODO: Parallelize ranking tasks
-    with ThreadPoolExecutor(max_workers=8) as e:
+    with ThreadPoolExecutor(max_workers=5) as e:
         for entry in testing_file.readlines():
             testing_entry = entry.strip()
             entry_count += 1
