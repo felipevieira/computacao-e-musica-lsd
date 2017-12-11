@@ -100,7 +100,7 @@ def similarity_by_simple(time_series_a, time_series_b, subsequence_length=20):
     '''
     oti = get_optimal_transposition_index(time_series_a, time_series_b)
     similarity_profile, similarity_index = simple(
-        time_series_a, rotate(list(time_series_b), oti), subsequence_length)
+        rotate(list(time_series_a), oti), time_series_b, subsequence_length)
 # https://stats.stackexchange.com/questions/158279/how-i-can-convert-distance-euclidean-to-similarity-score
     return statistics.median(similarity_profile)
 
@@ -115,7 +115,7 @@ def simple(time_series_a, time_series_b, subsequence_length):
 
     profile_matrix = [float("inf")] * (chroma_length_a - 1)
     index_matrix = [0] * (chroma_length_a - 1)
-    ts = time.time()
+
     for i in range(chroma_length_b):
         # FUTURE IMPROVEMENT: Use MASS algorithm to subsequences distances
         distance_profile_vector = similarity_distances(

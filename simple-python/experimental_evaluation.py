@@ -7,7 +7,6 @@ import os
 import ntpath
 import pickle
 
-
 from concurrent.futures import ThreadPoolExecutor
 
 TRAINING_FILE_PATH = '/local/datasets/YTCdataset/listtrain'
@@ -24,27 +23,46 @@ def write_chroma_series_to_file(file_path, chroma_series):
         pickle.dump(chroma_series, file)
 
 
-def load_chroma_series_from_file(file_path):
+def load_chroma_series_from_file(label_file):
     with open(file_path, "rb") as file:
         return pickle.load(file)
 
 
-def load_time_series_for_train_set(rewrite=True):
+LABEL_FILE = '/home/felipev/Área de Trabalho/ytc/listfiles'
+CHROMAS_FILE = '/home/felipev/Área de Trabalho/cens_aggregated=2fs-allsongs.txt'
+
+
+def get_chroma_from_file(label):
+    label_file = open(LABEL_FILE, 'r')
+    chromas_file = open(CHROMAS_FILE, 'r')
+
+    LABELS = label_file.read().splitlines()
+    CHROMAS = chromas_file.read().splitlines()
+
+    index = LABELS.index(label)
+    chromas_for_entry = CHROMAS[index * 12:index * 12 + 12]
+
+    chroma_representation = [[float(x) for x in pitch_chromas.strip().split(" ")]
+                             for pitch_chromas in chromas_for_entry]
+
+    label_file.close()
+    chromas_file.close()
+
+    return chroma_representation
+
+
+def load_time_series_for_train_set():
     training_file = open(TRAINING_FILE_PATH, 'r')
     training_time_series = {}
 
     for entry in training_file.readlines():
         training_entry = entry.strip()
-        print "Loading time series for %s..." % training_entry
 
-        if rewrite:
-            write_chroma_series_to_file(entry, SiMPle.get_chroma_time_series(
-                "%s/%s.mp3" % (DATASET_HOME, training_entry), hop_length=2240, agreggate_window=10))
-
-        training_time_series[training_entry] = load_chroma_series_from_file(
-            "%s/### Experiments ###/Chromas for Training Entries/%s.chroma" % (DATASET_HOME, entry.strip()))
+        training_time_series[training_entry] = get_chroma_from_file(
+            training_entry)
 
     training_file.close()
+
     return training_time_series
 
 
@@ -52,12 +70,11 @@ def get_similarity_ranking_for_testing_entry(training_time_series, testing_entry
     print "Building ranking for: %s" % testing_entry
     similarity_ranking = {}
 
-    testing_time_series = SiMPle.get_chroma_time_series(
-        "%s/%s.mp3" % (DATASET_HOME, testing_entry), hop_length=2240, agreggate_window=10)
+    testing_time_series = get_chroma_from_file(testing_entry)
 
     for training_entry in training_time_series.keys():
         similarity_ranking[training_entry] = SiMPle.similarity_by_simple(
-            training_time_series[training_entry], testing_time_series)
+            testing_time_series, training_time_series[training_entry])
 
     write_ranking_to_file(testing_entry, sorted(similarity_ranking.iteritems(), key=lambda (k, v): (v, k)))
 
@@ -113,9 +130,7 @@ def get_average_precision(ranking_file):
 
 
 def main_experiment(testing_file):
-    print "Pre-loading chroma time series for training set"
     training_time_series = load_time_series_for_train_set()
-    print "Chroma time series pre-loading finished!"
 
     testing_file = open(testing_file, 'r')
 
