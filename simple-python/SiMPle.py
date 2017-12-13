@@ -9,7 +9,7 @@ import time
 import datetime
 
 
-from sys import argv
+from sys import argv, exit
 from scipy.spatial import distance
 from time import gmtime, strftime
 
@@ -100,7 +100,7 @@ def similarity_by_simple(time_series_a, time_series_b, subsequence_length=20):
     '''
     oti = get_optimal_transposition_index(time_series_a, time_series_b)
     similarity_profile, similarity_index = simple(
-        rotate(list(time_series_a), oti), time_series_b, subsequence_length)
+        time_series_a, rotate(list(time_series_b), oti), subsequence_length)
 # https://stats.stackexchange.com/questions/158279/how-i-can-convert-distance-euclidean-to-similarity-score
     return statistics.median(similarity_profile)
 
@@ -167,6 +167,7 @@ def similarity_distances(time_series_a, time_series_b, starting_index, subsequen
         # It only matters the distances between subsequence-equivalent frames
         chroma_distances = [euclidean_distances[chroma_index][chroma_index]
                             for chroma_index in range(12)]
+
         subsequence_distances.append(
             sum(chroma_distances))
 
@@ -186,9 +187,34 @@ def element_wise_min(profile_matrix, index_matrix, distance_profile_vector, inde
     return profile_matrix, index_matrix
 
 
+LABEL_FILE = '/home/felipe/Desktop/ytc/listfiles'
+CHROMAS_FILE = '/home/felipe/Desktop/cens_aggregated=2fs-allsongs.txt'
+
+
+def get_chroma_from_file(label):
+    label_file = open(LABEL_FILE, 'r')
+    chromas_file = open(CHROMAS_FILE, 'r')
+
+    LABELS = label_file.read().splitlines()
+    CHROMAS = chromas_file.read().splitlines()
+
+    index = LABELS.index(label)
+
+    chromas_for_entry = CHROMAS[index * 12:index * 12 + 12]
+
+    chroma_representation = [[float(x) for x in pitch_chromas.strip().split(" ")]
+                             for pitch_chromas in chromas_for_entry]
+
+    label_file.close()
+    chromas_file.close()
+
+    return chroma_representation
+
+
 if __name__ == '__main__':
     # print len(get_chroma_time_series("/local/datasets/YTCdataset/ABBA - Dancing Queen/ABBA - DANCING QUEEN (Metal Cover)-LPLmhHnQytM.mp3",
     #                                  hop_length=2240, agreggate_window=10)[0])
-    print similarity_by_simple(get_chroma_time_series(argv[1], hop_length=1088, agreggate_window=10),
-                               get_chroma_time_series(argv[2], hop_length=1088, agreggate_window=10))
+    # print get_chroma_from_file('ABBA - Dancing Queen/Dancing Queen - Mamma Mia-DGUmXBgPvrg')[1]
+    print similarity_by_simple(get_chroma_from_file('ABBA - Dancing Queen/ABBA - DANCING QUEEN (Metal Cover)-LPLmhHnQytM'),
+                               get_chroma_from_file('ABBA - Dancing Queen/ABBA - Dancing Queen - HD - HQ (original sound) (live in Japan)-iaHmpiiWSLA'))
     # print get_optimal_transposition_index(get_chroma_time_series(argv[1]), get_chroma_time_series(argv[2]))
