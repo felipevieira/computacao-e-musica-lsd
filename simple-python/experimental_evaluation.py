@@ -9,10 +9,10 @@ import pickle
 
 from concurrent.futures import ThreadPoolExecutor
 
-TRAINING_FILE_PATH = '/local/datasets/YTCdataset/listtrain'
-TESTING_FILE_PATH = '/local/datasets/YTCdataset/listtest'
+TRAINING_FILE_PATH = '/home/felipev/workspace/computacao-e-musica-lsd/simple-python/YTCdataset/listtrain'
+TESTING_FILE_PATH = '/home/felipev/workspace/computacao-e-musica-lsd/simple-python/YTCdataset/listtest'
 
-DATASET_HOME = '/local/datasets/YTCdataset'
+DATASET_HOME = '/home/felipev/workspace/computacao-e-musica-lsd/simple-python/YTCdataset'
 
 
 def write_chroma_series_to_file(file_path, chroma_series):
@@ -28,8 +28,8 @@ def load_chroma_series_from_file(label_file):
         return pickle.load(file)
 
 
-LABEL_FILE = '/home/felipev/Área de Trabalho/ytc/listfiles'
-CHROMAS_FILE = '/home/felipev/Área de Trabalho/cens_aggregated=2fs-allsongs.txt'
+LABEL_FILE = 'YTCdataset/listfiles'
+CHROMAS_FILE = 'YTCdataset/YTC.deepChroma.smoothed.all'
 
 
 def get_chroma_from_file(label):
@@ -56,13 +56,13 @@ def load_time_series_for_train_set():
     training_time_series = {}
 
     for entry in training_file.readlines():
+
         training_entry = entry.strip()
 
         training_time_series[training_entry] = get_chroma_from_file(
             training_entry)
 
     training_file.close()
-
     return training_time_series
 
 
