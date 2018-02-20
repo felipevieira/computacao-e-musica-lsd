@@ -9,10 +9,17 @@ import pickle
 
 from concurrent.futures import ThreadPoolExecutor
 
+<<<<<<< HEAD
 TRAINING_FILE_PATH = '/home/felipev/workspace/computacao-e-musica-lsd/simple-python/YTCdataset/listtrain'
 TESTING_FILE_PATH = '/home/felipev/workspace/computacao-e-musica-lsd/simple-python/YTCdataset/listtest'
 
 DATASET_HOME = '/home/felipev/workspace/computacao-e-musica-lsd/simple-python/YTCdataset'
+=======
+TRAINING_FILE_PATH = '/home/felipe/Desktop/YTCdataset/listtrain'
+TESTING_FILE_PATH = '/home/felipe/Desktop/YTCdataset/listtest'
+
+DATASET_HOME = '/home/felipe/Desktop/YTCdataset'
+>>>>>>> 3a5e5a11fff90cf75416b4a1aa032075110f899f
 
 
 def write_chroma_series_to_file(file_path, chroma_series):
@@ -28,8 +35,13 @@ def load_chroma_series_from_file(label_file):
         return pickle.load(file)
 
 
+<<<<<<< HEAD
 LABEL_FILE = 'YTCdataset/listfiles'
 CHROMAS_FILE = 'YTCdataset/YTC.deepChroma.smoothed.all'
+=======
+LABEL_FILE = '/home/felipe/Desktop/ytc/listfiles'
+CHROMAS_FILE = '/home/felipe/Desktop/cens_aggregated=2fs-allsongs.txt'
+>>>>>>> 3a5e5a11fff90cf75416b4a1aa032075110f899f
 
 
 def get_chroma_from_file(label):
@@ -76,7 +88,8 @@ def get_similarity_ranking_for_testing_entry(training_time_series, testing_entry
         similarity_ranking[training_entry] = SiMPle.similarity_by_simple(
             testing_time_series, training_time_series[training_entry])
 
-    write_ranking_to_file(testing_entry, sorted(similarity_ranking.iteritems(), key=lambda (k, v): (v, k)))
+    write_ranking_to_file(testing_entry, sorted(
+        similarity_ranking.iteritems(), key=lambda (k, v): (v, k)))
 
 
 def write_ranking_to_file(testing_entry, dict_ranking):
@@ -126,7 +139,7 @@ def get_average_precision(ranking_file):
             else:
                 average_precision_series.append(0)
 
-    return sum(average_precision_series)
+    return sum(average_precision_series) / 2
 
 
 def main_experiment(testing_file):
