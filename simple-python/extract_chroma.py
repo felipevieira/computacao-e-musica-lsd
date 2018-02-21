@@ -3,16 +3,17 @@ import sys
 import os
 
 import librosa
+import numpy as np
+import oct2py
 
 import SiMPle
 
 from madmom.audio.chroma import DeepChromaProcessor
 from madmom.audio.chroma import CLPChroma
-import numpy as np
 
 
 def extract_chroma_cens_to_file(dataset_path, output_file):
-    with open(os.path.join(dataset_path, 'listfiles2'), 'r') as list_of_files:
+    with open(os.path.join(dataset_path, 'listfiles'), 'r') as list_of_files:
         with open(os.path.join(dataset_path, 'librosa_cens_aggregated=2fs_sr=44100_sw=412.txt') if not output_file
                   else os.path.join(dataset_path, output_file), 'w') as output_file:
             for cover_file in list_of_files.readlines():
@@ -23,14 +24,15 @@ def extract_chroma_cens_to_file(dataset_path, output_file):
 
 def extract_deep_chroma_to_file(dataset_path, output_file):
     dcp = DeepChromaProcessor()
-
-    with open(os.path.join(dataset_path, 'listfiles2'), 'r') as list_of_files:
-        with open(os.path.join(dataset_path, 'madmom_deepchromas[NO AGGREGATION].txt') if not output_file
+    octave_engine = oct2py.Oct2Py()
+    octave_engine.eval('pkg load signal')
+    with open(os.path.join(dataset_path, 'listfiles'), 'r') as list_of_files:
+        with open(os.path.join(dataset_path, 'YTC.madmom_deepchromas_smoothed=octave.txt') if not output_file
                   else os.path.join(dataset_path, output_file), 'w') as output_file:
             for cover_file in list_of_files.readlines():
                 song_path = '%s%s.mp3' % (dataset_path, cover_file.strip())
-            for chroma in np.transpose(dcp(song_path)):
-                output_file.write('%s\n' % string_for_chroma(chroma))
+                for chroma in octave_engine.smoothDownsampleFeature(np.transpose(dcp(song_path))):
+                    output_file.write('%s\n' % string_for_chroma(chroma))
 
 
 def string_for_chroma(chroma):
