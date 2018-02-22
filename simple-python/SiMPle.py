@@ -1,21 +1,49 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import librosa
 import statistics
-import numpy
 import operator
 import time
 import datetime
+import os
+
+import numpy
+import librosa
+import oct2py
 
 
 from sys import argv, exit
 from scipy.spatial import distance
 from time import gmtime, strftime
 
+from mass import findInT as MASS
+from time import gmtime, strftime
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
 # from mass import *
 
 HOP_LENGHT_FOR_CENS = 10880
+
+
+def get_chroma_from_file(dataset_path, chromas_file, label):
+    label_file = open(os.path.join(dataset_path, 'listfiles'), 'r')
+    chromas_file = open(os.path.join(dataset_path, chromas_file), 'r')
+
+    LABELS = label_file.read().splitlines()
+    CHROMAS = chromas_file.read().splitlines()
+
+    index = LABELS.index(label)
+    chromas_for_entry = CHROMAS[index * 12:index * 12 + 12]
+
+    chroma_representation = [[float(x) for x in pitch_chromas.strip().split(" ")]
+                             for pitch_chromas in chromas_for_entry]
+
+    label_file.close()
+    chromas_file.close()
+
+    return chroma_representation
 
 
 def _print_subsequence(chroma_series, subsequence_length, start_index):
@@ -56,41 +84,22 @@ def get_optimal_transposition_index(time_series_a, time_series_b):
     return index
 
 
-def get_chroma_time_series(song, hop_length=2176, agreggate_window=10):
+def get_chroma_time_series(song, hop_length=22016, agreggate_window=10):
     '''
         Function that returns a chroma CENS time series for a song
         provided as parameter. NOTE: hop_length means the number
         of frames considered in one single chroma feature. Since
         default sample rate is 44100Hz and considering that we want
-        20 chroma features per second of audio (before aggs): 44100/20 ~= 11008
-        (hop_lenght must be multiple of 2^6)
+        20 chroma features per second of audio (that happens when
+        further custom aggs are performed): 44100/20 ~= 2176.
+        If no aggs are performed, one should use hop_lenght=22016
     '''
     waveform_time_series, sample_rate = librosa.load(song, sr=44100)
 
     chroma_cens = librosa.feature.chroma_cens(
-        y=waveform_time_series, sr=sample_rate, hop_length=hop_length, win_len_smooth=1)
+        y=waveform_time_series, sr=sample_rate, hop_length=hop_length)
 
-    aggregated_chroma = []
-    if agreggate_window:
-        for i in range(12):
-            aggregated_pitch = []
-            # aggregate first window fully
-            aggregated_pitch.append(
-                float(sum(chroma_cens[i][0:agreggate_window])) / agreggate_window)
-            for j in range(agreggate_window, len(chroma_cens[i]), agreggate_window):
-                aggregated_pitch.append(
-                    float(sum(chroma_cens[i][j - agreggate_window / 2:j + agreggate_window / 2])) / agreggate_window)
-            # for j in range(len(chroma_cens[i]) / agreggate_window):
-            #     aggregated_pitch.append(
-            #         # Aggregating and overlapping
-            #         sum(chroma_cens[i][max(0, j - (agreggate_window / 2)):j + (agreggate_window / 2)]) / agreggate_window)
-            # if len(chroma_cens) - j + agreggate_window != 0:
-            #     aggregated_pitch.append(
-            #         float(sum(chroma_cens[i][j + agreggate_window / 2:])) / agreggate_window)
-
-            aggregated_chroma.append(aggregated_pitch)
-
-    return aggregated_chroma
+    return chroma_cens
 
 
 def similarity_by_simple(time_series_a, time_series_b, subsequence_length=20):
@@ -133,7 +142,7 @@ def chroma_mass(time_series_a, time_series_b, b_index, subsequence_length):
 
     for i in range(12):
         chroma_distances.append(
-            findInT(time_series_b[i][b_index:b_index + subsequence_length], time_series_a[i]))
+            MASS(time_series_b[i][b_index:b_index + subsequence_length], time_series_a[i]))
 
     distance_profile_vector = []
 
@@ -151,8 +160,10 @@ def similarity_distances(time_series_a, time_series_b, starting_index, subsequen
         Returns a vector containing the distances between a B subsequence of size
         subsequence_length starting at starting_index and every A subsequences of same size
     '''
+    # start_time = time.time()
     subsequence_distances = []
     b_subsequence = []
+
     for pitch_class in range(12):
         b_subsequence.append([chroma_energy for chroma_energy in time_series_b[pitch_class]
                               [starting_index:starting_index + subsequence_length]])
@@ -170,8 +181,25 @@ def similarity_distances(time_series_a, time_series_b, starting_index, subsequen
 
         subsequence_distances.append(
             sum(chroma_distances))
-
+    # print("--- %s seconds ---" % (time.time() - start_time))
     return subsequence_distances
+
+
+def similarity_distances_by_mass(time_series_a, time_series_b, starting_index, subsequence_length):
+    # start_time = time.time()
+    '''
+        Returns a vector containing the distances between a B subsequence of size
+        subsequence_length starting at starting_index and every A subsequences of same size
+    '''
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        future_to_pitch_class = {executor.submit(MASS, time_series_a[pitch_class], time_series_b[pitch_class]
+                                                 [starting_index:starting_index + subsequence_length]): pitch_class for pitch_class in range(12)}
+        chroma_distances = []
+        for future in as_completed(future_to_pitch_class):
+            chroma_distances.append(future.result())
+
+    # print("--- %s seconds ---" % (time.time() - start_time))
+    return list(numpy.sum(chroma_distances, axis=0))
 
 
 def element_wise_min(profile_matrix, index_matrix, distance_profile_vector, index):
@@ -191,30 +219,20 @@ LABEL_FILE = '/home/felipe/Desktop/ytc/listfiles'
 CHROMAS_FILE = '/home/felipe/Desktop/cens_aggregated=2fs-allsongs.txt'
 
 
-def get_chroma_from_file(label):
-    label_file = open(LABEL_FILE, 'r')
-    chromas_file = open(CHROMAS_FILE, 'r')
-
-    LABELS = label_file.read().splitlines()
-    CHROMAS = chromas_file.read().splitlines()
-
-    index = LABELS.index(label)
-
-    chromas_for_entry = CHROMAS[index * 12:index * 12 + 12]
-
-    chroma_representation = [[float(x) for x in pitch_chromas.strip().split(" ")]
-                             for pitch_chromas in chromas_for_entry]
-
-    label_file.close()
-    chromas_file.close()
-
-    return chroma_representation
-
-
 if __name__ == '__main__':
-    # print len(get_chroma_time_series("/local/datasets/YTCdataset/ABBA - Dancing Queen/ABBA - DANCING QUEEN (Metal Cover)-LPLmhHnQytM.mp3",
-    #                                  hop_length=2240, agreggate_window=10)[0])
-    # print get_chroma_from_file('ABBA - Dancing Queen/Dancing Queen - Mamma Mia-DGUmXBgPvrg')[1]
-    print similarity_by_simple(get_chroma_from_file('ABBA - Dancing Queen/ABBA - DANCING QUEEN (Metal Cover)-LPLmhHnQytM'),
-                               get_chroma_from_file('ABBA - Dancing Queen/ABBA - Dancing Queen - HD - HQ (original sound) (live in Japan)-iaHmpiiWSLA'))
-    # print get_optimal_transposition_index(get_chroma_time_series(argv[1]), get_chroma_time_series(argv[2]))
+    # OCTAVE_ENGINE = oct2py.Oct2Py()
+    print similarity_by_simple(
+        get_chroma_from_file("YTCdataset", "YTC.deepChroma.smoothed.all",
+                             "ABBA - Dancing Queen/ABBA - DANCING QUEEN (Metal Cover)-LPLmhHnQytM"),
+        get_chroma_from_file("YTCdataset", "YTC.deepChroma.smoothed.all", "ABBA - Dancing Queen/ABBA - DANCING QUEEN (Metal Cover)-LPLmhHnQytM"))
+# pass
+# print len(get_chroma_time_series("/local/datasets/YTCdataset/ABBA - Dancing Queen/ABBA - DANCING QUEEN (Metal Cover)-LPLmhHnQytM.mp3",
+#                                  hop_length=2240, agreggate_window=10)[0])
+# chroma_a = get_chroma_time_series(
+#     '/home/felipev/workspace/computacao-e-musica-lsd/simple-python/YTCdataset/ABBA - Dancing Queen/ABBA - Dancing Queen - HD - HQ (original sound) (live in Japan)-iaHmpiiWSLA.mp3')
+# chroma_b = get_chroma_time_series(
+#     '/home/felipev/workspace/computacao-e-musica-lsd/simple-python/YTCdataset/ABBA - Dancing Queen/ABBA - DANCING QUEEN (Metal Cover)-LPLmhHnQytM.mp3')
+# print similarity_by_simple(chroma_a, chroma_b)
+# print similarity_by_simple(get_chroma_from_file('ABBA - Dancing Queen/ABBA - DANCING QUEEN (Metal Cover)-LPLmhHnQytM'),
+#                            get_chroma_from_file('ABBA - Dancing Queen/ABBA - Dancing Queen - HD - HQ (original sound) (live in Japan)-iaHmpiiWSLA'))
+# print get_optimal_transposition_index(get_chroma_time_series(argv[1]), get_chroma_time_series(argv[2]))
